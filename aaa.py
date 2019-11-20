@@ -25,6 +25,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import Utility as ut
 
 def menu():
     print("\n ========================= ")
@@ -34,8 +35,10 @@ def menu():
     print(" available functions are:  ")
     print("   - info():                Retrive basic information from ArduSiPM ")
     print("   - ")
-    print("   - Load_Curti_xlsx():  Load data from CVS output file")
-    print("   - LoadMerge_xlsx():   Load all files from a folder")
+    print("   - Load_Curti_xlsx():     Load data from CVS output file")
+    print("   - LoadMerge_xlsx():      Load all files from a folder")
+    print("   - ")
+    print("   - Plot_ADC():            1D plot of ADC spectra")
 
     print(" ========================= \n")
 
@@ -50,6 +53,9 @@ def interactive():
     import IPython
     IPython.embed()
 
+'''==================
+     Load data from file/s
+=================='''
 class ArduSiPM_MetaData:
     def __init__(self):
         self.FileName = 'Not-Provided'
@@ -76,7 +82,7 @@ def Load_Curti_xlsx(filename=None):
         print(f'NO TDC/ADC information in file {filename}')
         return(0)
 
-def LoadMerge_xlsx(directory=None, InName=None, OutName=None):
+def Load_Merge_xlsx(directory=None, InName=None, OutName=None):
     '''
     SCOPE:
     INPUT: path to the folder with xlsx data files
@@ -108,6 +114,26 @@ def LoadMerge_xlsx(directory=None, InName=None, OutName=None):
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
     return(TheData)
 
+
+'''==================
+     Plotting
+=================='''
+def Plot_ADC(dati, binsize=16, hRange=[0,4000]):
+    '''
+    SCOPE: fast plot of ADC spectra
+    INPUT: data
+    OUTPUT: print info on screen and histo parameters
+    '''
+    nBin = int((hRange[1]-hRange[0])/binsize)
+    title = 'ADC spectra'
+    label = 'ADC channel'
+    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, label=label, log=True)
+    return n, bins, patches
+
+
+'''==================
+     ArduSiPM interfacing
+=================='''
 def info():
     '''
     SCOPE: call to the original info script from V.Bocci
