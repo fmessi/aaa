@@ -17,6 +17,7 @@
 import sys
 import os
 import time
+from datetime import datetime, timedelta
 import csv
 import serial
 import serial.tools.list_ports
@@ -33,7 +34,9 @@ def menu():
     print(" ========================= ")
     print(" type menu() for this menu \n")
     print(" available functions are:  ")
-    print("   - info():                Retrive basic information from ArduSiPM ")
+    print("   - Info_ASPM():                Retrive basic information from ArduSiPM ")
+    print("   - Acquire_ASPM():        Open connection and start acquisition")
+    print("   - Save_Data():           Save recorded data on a file")
     print("   - ")
     print("   - Load_Curti_xlsx():     Load data from CVS output file")
     print("   - LoadMerge_xlsx():      Load all files from a folder")
@@ -134,7 +137,7 @@ def Plot_ADC(dati, binsize=16, hRange=[0,4000]):
 '''==================
      ArduSiPM interfacing
 =================='''
-def info():
+def Info_ASPM():
     '''
     SCOPE: call to the original info script from V.Bocci
     INPUT: none
@@ -142,6 +145,81 @@ def info():
     '''
     sys.path.append('Valerio/')
     import ArduSiPM_info.py
+
+def Search_ASPM(baudrate=115200, timeout=None):
+    '''
+    SCOPE: search for ArduSiPM
+    NOTE: copied and adapted from the original script from V.Bocci
+    INPUT: none
+    OUTPUT: string with serial name
+    '''
+    #Scan Serial ports and found ArduSiPM
+    print('Serial ports available:')
+    ports = list(serial.tools.list_ports.comports())
+    for i in range (0,len(ports)):
+        print(ports[i])
+        pippo=str(ports[i])
+        if (pippo.find('Arduino')>0):
+            serialport=pippo.split(" ")[0] #TODO: ? solve the com> com9 problem Francesco
+            print(f"Found ArduSiPM in port {serialport}")
+            return(str(serialport))
+        else :
+            print ("no ArduSiPM, looking more...")
+
+def Save_Data(filename):
+    '''
+    SCOPE:
+    NOTE: copied and adapted from the original script from V.Bocci
+    INPUT:
+    OUTPUT:
+    '''
+
+def Acquire_ASPM(duration_acq, ser):
+    '''
+    SCOPE:
+    INPUT: duration in seconds
+    OUTPUT: a DataFraMe with the data
+    '''
+    lista = []
+    start_acq_time = datetime.now()
+    stop_acq_time = start_acq_time + timedelta(seconds=duration_acq-1)
+    acq_time = datetime.now()
+    while(acq_time < stop_acq_time):
+        acq_time = datetime.now()
+        #print(acq_time.strftime('%H:%M:%S'))
+        ser.reset_input_buffer() # Flush all the previous data in Serial port
+        data = ser.readline().rstrip()
+        #print(data)
+        data=data.decode('ascii')
+        print(data)
+
+
+
+def RunIt(time=0, file=None):
+    '''
+    SCOPE:
+    NOTE: copied and adapted from the original script from V.Bocci
+    INPUT:
+    OUTPUT:
+    '''
+
+    ## serial connection
+    ser = serial.Serial()
+    ser.baudrate = 115200
+    ser.timeout=None #try to solve delay
+    ser_num = Search_ASPM()
+    if (ser_num): ser.open()
+    else:
+        print('ArduSiPM not found please connect')
+        return(0)
+    ## acquisition
+    data = Acquire_ASPM(time, ser)
+
+
+
+
+
+
 
 menu()
 interactive()
