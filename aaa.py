@@ -208,11 +208,16 @@ def RunIt(time=0, file=None):
     ser.baudrate = 115200
     ser.timeout=None #try to solve delay
     ser_num = Search_ASPM()
-    if (ser_num): ser.open()
+    if (ser_num):
+        ser.port = ser_num
+        ser.open()
     else:
         print('ArduSiPM not found please connect')
         return(0)
     ## acquisition
+    ser.write(b'@')
+    ser.write(b'h75')
+    ser.write(b's2')
     data = Acquire_ASPM(time, ser)
 
 
