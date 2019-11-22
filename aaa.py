@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 '''
@@ -166,13 +167,23 @@ def Search_ASPM(baudrate=115200, timeout=None):
         else :
             print ("no ArduSiPM, looking more...")
 
-def Save_Data(filename):
+def Scrivi_Seriale(comando, ser):
+    if(ser):
+        ser.write(comando)
+        time.sleep(0.5)
+
+
+def Save_Data(data, file_name='my_data.csv'):
     '''
     SCOPE:
-    NOTE: copied and adapted from the original script from V.Bocci
-    INPUT:
+    INPUT: file name and data in binary format
     OUTPUT:
     '''
+    with open(file_name, 'w') as file:
+        #writer = csv.writer(file, delimiter=',')
+        for line in data:
+            file.write(line.decode('ascii'))
+            file.write(',')
 
 def Acquire_ASPM(duration_acq, ser):
     '''
@@ -190,19 +201,20 @@ def Acquire_ASPM(duration_acq, ser):
         ser.reset_input_buffer() # Flush all the previous data in Serial port
         data = ser.readline().rstrip()
         #print(data)
-        data=data.decode('ascii')
-        print(data)
+        #data=data.decode('ascii')
+        #print(data)
+        lista.append(data)
+    return(lista)
 
-
-
-def RunIt(time=0, file=None):
+def RunIt(duration_acq=0, file_par='RawData'):
     '''
     SCOPE:
     NOTE: copied and adapted from the original script from V.Bocci
     INPUT:
     OUTPUT:
     '''
-
+    start_time = datetime.now()
+    stopat = start_time+timedelta(seconds=duration_acq)
     ## serial connection
     ser = serial.Serial()
     ser.baudrate = 115200
@@ -211,20 +223,32 @@ def RunIt(time=0, file=None):
     if (ser_num):
         ser.port = ser_num
         ser.open()
+        time.sleep(1)
     else:
         print('ArduSiPM not found please connect')
         return(0)
     ## acquisition
-    ser.write(b'@')
-    ser.write(b'h75')
-    ser.write(b's2')
-    data = Acquire_ASPM(time, ser)
+    #ser.write(b'a') # enable ADC
+    #ser.write(b'd') # enable TDC
+    #ser.write(b'h75') # set HV
+    Scrivi_Seriale(b's100', ser)
+    #Scrivi_Seriale(b'@', ser)
+    print(f'Acquiring now... will stop at {stopat}')
+    data = Acquire_ASPM(duration_acq, ser)
+    print('SAVING DATA...')
+    Save_Data(data, f"{start_time.strftime('%y%m%d%H%M%S')}_{file_par}.csv")
+    ser.close()
+    return data
 
-
-
-
-
-
+def RunLoop(duration_acq, nLoops, file_par):
+    print(f'Start running {nLoops} loops of {duration_acq} sec each')
+    print()
+    i = 1
+    while i <= nLoops:
+        print()
+        print(f'Run now loop n. {i}')
+        RunIt(duration_acq=duration_acq, file_par=file_par)
+        i=i+1
 
 menu()
 interactive()
