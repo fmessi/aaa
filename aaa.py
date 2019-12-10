@@ -217,7 +217,7 @@ def Info_ASPM():
     sys.path.append('Valerio/')
     import ArduSiPM_info.py
 
-def Search_ASPM(baudrate=115200, timeout=None):
+def Search_ASPM(baudrate=115200, timeout=None, debug=False):
     '''
     SCOPE: search for ArduSiPM
     NOTE: copied and adapted from the original script from V.Bocci
@@ -225,10 +225,10 @@ def Search_ASPM(baudrate=115200, timeout=None):
     OUTPUT: string with serial name
     '''
     #Scan Serial ports and found ArduSiPM
-    print('Serial ports available:')
+    if(debug): print('Serial ports available:')
     ports = list(serial.tools.list_ports.comports())
     for i in range (0,len(ports)):
-        print(ports[i])
+        if(debug): print(ports[i])
         pippo=str(ports[i])
         if (pippo.find('Arduino')>0):
             serialport=pippo.split(" ")[0] #TODO: ? solve the com> com9 problem Francesco
@@ -239,7 +239,12 @@ def Search_ASPM(baudrate=115200, timeout=None):
 
 def Scrivi_Seriale(comando, ser):
     if(ser):
+        ser.write(b'm')
+        time.sleep(2)
         ser.write(comando)
+        time.sleep(2)
+        ser.write(b'e')
+        print(f'worte on serial {comando}')
         time.sleep(0.5)
 
 '''==================
@@ -257,7 +262,7 @@ def Save_Data(data, file_name='my_data.csv'):
             file.write(line.decode('ascii'))
             file.write(',')
 
-def Acquire_ASPM(duration_acq, ser):
+def Acquire_ASPM(duration_acq, ser, debug=False):
     '''
     SCOPE:
     INPUT: duration in seconds
@@ -274,8 +279,9 @@ def Acquire_ASPM(duration_acq, ser):
         data = ser.readline().rstrip()
         #print(data)
         #data=data.decode('ascii')
-        #print(data)
+        if(debug): print(data)
         lista.append(data)
+        time.sleep(0.2)
     return(lista)
 
 def RunIt(duration_acq=0, file_par='RawData'):
@@ -304,7 +310,10 @@ def RunIt(duration_acq=0, file_par='RawData'):
     #ser.write(b'd') # enable TDC
     #ser.write(b'h75') # set HV
     Scrivi_Seriale(b's100', ser)
-    Scrivi_Seriale(b'@', ser)
+    #Scrivi_Seriale(b'@', ser)
+    time.sleep(0.5)
+    ser.write(b'@')
+    time.sleep(0.5)
     print(f'Acquiring now... will stop at {stopat}')
     data = Acquire_ASPM(duration_acq, ser)
     print('SAVING DATA...')
