@@ -157,6 +157,37 @@ def Load_csv(filename=None):
     #return(TheData)
     return(TheData)
 
+def Load_Merge_csv(directory=None, InName=None, OutName=None):
+    '''
+    SCOPE:
+    INPUT: path to the folder with xlsx data files
+    OUTPUT: a Pandas DataFrame
+    '''
+    #TODO: return an ArduSiPM_MetaData
+    if not directory:
+        print('PLEASE, provide a directory to scan... ')
+        return(0,0)
+    nFile = 0
+    data = []
+    slash = '/'
+    if(InName): print(f"I will skip all files that does NOT contain {InName}")
+    if(OutName): print(f"I will skip all files that does contain {OutName}")
+    ## loops on the files of the directory
+    for filename in os.listdir(directory):
+        if filename.endswith(".csv"):
+            if InName and InName not in filename:
+                print("skipping " + filename)
+                continue
+            if '~' in filename: continue
+            if OutName and OutName in filename:
+                print("skipping " + filename)
+                continue
+            nFile = nFile+1
+            # loading and filtering data:
+            print(f'loading file {directory+slash+filename}')
+            data.append(Load_csv(directory+"/"+filename)) #this is a list of DataFraMe
+    TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
+    return(TheData)
 
 '''==================
      Plotting
