@@ -259,7 +259,7 @@ def Save_Data(data, file_name='my_data.csv'):
     with open(file_name, 'w') as file:
         #writer = csv.writer(file, delimiter=',')
         for line in data:
-            file.write(line.decode('ascii'))
+            file.write(line)#.decode('ascii'))
             file.write(',')
 
 def Acquire_ASPM(duration_acq, ser, debug=False):
@@ -277,10 +277,9 @@ def Acquire_ASPM(duration_acq, ser, debug=False):
         #print(acq_time.strftime('%H:%M:%S'))
         ser.reset_input_buffer() # Flush all the previous data in Serial port
         data = ser.readline().rstrip()
-        #print(data)
-        #data=data.decode('ascii')
-        if(debug): print(data)
-        lista.append(data)
+        tdata = f"[u{acq_time.strftime('%y%m%d%H%M%S')}][{data.decode('ascii')}]"
+        if(debug): print(tdata)
+        lista.append(tdata)
         time.sleep(0.2)
     return(lista)
 
@@ -309,7 +308,7 @@ def RunIt(duration_acq=0, file_par='RawData'):
     #ser.write(b'a') # enable ADC
     #ser.write(b'd') # enable TDC
     #ser.write(b'h75') # set HV
-    Scrivi_Seriale(b's100', ser)
+    Scrivi_Seriale(b's1', ser)
     #Scrivi_Seriale(b'@', ser)
     time.sleep(0.5)
     ser.write(b'@')
