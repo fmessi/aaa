@@ -118,6 +118,45 @@ def Load_Merge_xlsx(directory=None, InName=None, OutName=None):
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
     return(TheData)
 
+def Load_csv(filename=None):
+    '''
+    SCOPE: load data from a CSV datafile generated from the Save_Data() function
+    INPUT: the file name of the csv datafile
+    OUTPUT: a Pandas DataFrame
+    '''
+    if not filename:
+        print("please provide a valid filename")
+        return(0)
+    if not filename.endswith(".csv"):
+        print("file not .csv, please provide a valid filename")
+        return(0)
+    ddata = []
+    with open(filename, 'r') as file:
+        #rawdata = csv.reader(file, delimiter=',')
+        for line in file: rawdata = line.split(',')
+        for row in rawdata:
+            dolpos = row.find('$')
+            tpos = row.find('t')
+            #vpos = row.find('v')
+            ## only data with a valid time are imported
+            if (dolpos <=1): continue
+            CPS = row[dolpos+1]
+            #print('row is '+ row)
+            data = row[:dolpos]
+            if not (data[0] == 't'): continue 
+            if(tpos==0):
+              lista=data[1:].split('t')
+              for i in range(0,len(lista)):
+                  vlista = lista[i].split('v')
+                  TDC = vlista[0]
+                  ADC = vlista[1]
+                  #print(row,CPS,TDC,ADC)
+                  ddata.append([0,int(CPS),int(TDC,16),int(ADC,16)])
+    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
+    #TheData.df = TheData.df.concat(ddata, ignore_index=True)
+    #return(TheData)
+    return(TheData)
+
 
 '''==================
      Plotting
@@ -172,7 +211,9 @@ def Scrivi_Seriale(comando, ser):
         ser.write(comando)
         time.sleep(0.5)
 
-
+'''==================
+     Data acquisition
+=================='''
 def Save_Data(data, file_name='my_data.csv'):
     '''
     SCOPE:
@@ -232,7 +273,7 @@ def RunIt(duration_acq=0, file_par='RawData'):
     #ser.write(b'd') # enable TDC
     #ser.write(b'h75') # set HV
     Scrivi_Seriale(b's100', ser)
-    #Scrivi_Seriale(b'@', ser)
+    Scrivi_Seriale(b'@', ser)
     print(f'Acquiring now... will stop at {stopat}')
     data = Acquire_ASPM(duration_acq, ser)
     print('SAVING DATA...')
@@ -250,5 +291,8 @@ def RunLoop(duration_acq, nLoops, file_par):
         RunIt(duration_acq=duration_acq, file_par=file_par)
         i=i+1
 
+'''==================
+     Interactive menu
+=================='''
 menu()
 interactive()
