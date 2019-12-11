@@ -39,8 +39,10 @@ def menu():
     print("   - Acquire_ASPM():        Open connection and start acquisition")
     print("   - Save_Data():           Save recorded data on a file")
     print("   - ")
-    print("   - Load_Curti_xlsx():     Load data from CVS output file")
-    print("   - LoadMerge_xlsx():      Load all files from a folder")
+    print("   - Load_Curti_xlsx():     Load data from xlsx output file")
+    print("   - LoadMerge_xlsx():      Load all files from a folder (xlsx)")
+    print("   - Load_csv():            Load data from CVS output file")
+    print("   - LoadMerge_cvs():      Load all files from a folder (cvs)")
     print("   - ")
     print("   - Plot_ADC():            1D plot of ADC spectra")
 
@@ -118,7 +120,7 @@ def Load_Merge_xlsx(directory=None, InName=None, OutName=None):
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
     return(TheData)
 
-def Load_csv(filename=None):
+def Load_csv_old(filename=None):
     '''
     SCOPE: load data from a CSV datafile generated from the Save_Data() function
     INPUT: the file name of the csv datafile
@@ -143,7 +145,7 @@ def Load_csv(filename=None):
             CPS = row[dolpos+1]
             #print('row is '+ row)
             data = row[:dolpos]
-            if not (data[0] == 't'): continue 
+            if not (data[0] == 't'): continue
             if(tpos==0):
               lista=data[1:].split('t')
               for i in range(0,len(lista)):
@@ -152,6 +154,50 @@ def Load_csv(filename=None):
                   ADC = vlista[1]
                   #print(row,CPS,TDC,ADC)
                   ddata.append([0,int(CPS),int(TDC,16),int(ADC,16)])
+    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
+    #TheData.df = TheData.df.concat(ddata, ignore_index=True)
+    #return(TheData)
+    return(TheData)
+
+def Load_csv(filename=None, debug=False):
+    '''
+    SCOPE: load data from a CSV datafile generated from the Save_Data() function
+    INPUT: the file name of the csv datafile
+    OUTPUT: a Pandas DataFrame
+    '''
+    if not filename:
+        print("please provide a valid filename")
+        return(0)
+    if not filename.endswith(".csv"):
+        print("file not .csv, please provide a valid filename")
+        return(0)
+    ddata = []
+    with open(filename, 'r') as file:
+        #rawdata = csv.reader(file, delimiter=',')
+        for line in file: rawdata = line.split(',')
+        for row in rawdata:
+            dolpos = row.find('$')
+            tpos = row.find('t')
+            #vpos = row.find('v')
+            ## only data with a valid time are imported
+            if (dolpos <=1): continue
+            CPS = row[dolpos+1]
+            if debug: print(f'row is {row}')
+            data = row[:dolpos]
+            if debug: print(f'data is {data}')
+            #if not (data[0] == 't'): continue
+            #print(tpos)
+            if(tpos==13):
+              #lista=data[1:].split('t')
+              utime = data[1:12]
+              lista=data[14:].split('t')
+              if debug: print(f'lista is : {lista}')
+              for i in range(0,len(lista)):
+                  vlista = lista[i].split('v')
+                  TDC = vlista[0]
+                  ADC = vlista[1]
+                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
+                  ddata.append([utime,int(CPS),int(TDC,16),int(ADC,16)])
     TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
     #TheData.df = TheData.df.concat(ddata, ignore_index=True)
     #return(TheData)
@@ -277,7 +323,7 @@ def Acquire_ASPM(duration_acq, ser, debug=False):
         #print(acq_time.strftime('%H:%M:%S'))
         ser.reset_input_buffer() # Flush all the previous data in Serial port
         data = ser.readline().rstrip()
-        tdata = f"[u{acq_time.strftime('%y%m%d%H%M%S')}][{data.decode('ascii')}]"
+        tdata = f"u{acq_time.strftime('%y%m%d%H%M%S')}{data.decode('ascii')}"
         if(debug): print(tdata)
         lista.append(tdata)
         time.sleep(0.2)
@@ -308,7 +354,7 @@ def RunIt(duration_acq=0, file_par='RawData'):
     #ser.write(b'a') # enable ADC
     #ser.write(b'd') # enable TDC
     #ser.write(b'h75') # set HV
-    Scrivi_Seriale(b's1', ser)
+    Scrivi_Seriale(b's3', ser)
     #Scrivi_Seriale(b'@', ser)
     time.sleep(0.5)
     ser.write(b'@')
