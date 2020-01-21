@@ -187,7 +187,19 @@ def Load_csv(filename=None, debug=False):
             if debug: print(f'data is {data}')
             #if not (data[0] == 't'): continue
             #print(tpos)
+            if(tpos==20):
+              #lista=data[1:].split('t')
+              utime = data[1:19]
+              lista=data[21:].split('t')
+              if debug: print(f'lista is : {lista}')
+              for i in range(0,len(lista)):
+                  vlista = lista[i].split('v')
+                  TDC = vlista[0]
+                  ADC = vlista[1]
+                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
+                  ddata.append([utime,int(CPS),int(TDC,16),int(ADC,16)])
             if(tpos==13):
+              if debug: print('old format')
               #lista=data[1:].split('t')
               utime = data[1:12]
               lista=data[14:].split('t')
@@ -199,9 +211,10 @@ def Load_csv(filename=None, debug=False):
                   if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
                   ddata.append([utime,int(CPS),int(TDC,16),int(ADC,16)])
     TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
+    acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
     #TheData.df = TheData.df.concat(ddata, ignore_index=True)
     #return(TheData)
-    return(TheData)
+    return(TheData, acqtime)
 
 def Load_Merge_csv(directory=None, InName=None, OutName=None):
     '''
@@ -214,6 +227,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None):
         print('PLEASE, provide a directory to scan... ')
         return(0,0)
     nFile = 0
+    totACQTime = 0.0
     data = []
     slash = '/'
     if(InName): print(f"I will skip all files that does NOT contain {InName}")
@@ -231,9 +245,13 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None):
             nFile = nFile+1
             # loading and filtering data:
             print(f'loading file {directory+slash+filename}')
-            data.append(Load_csv(directory+"/"+filename)) #this is a list of DataFraMe
+            #data.append(Load_csv(directory+"/"+filename)) #this is a list of DataFraMe
+            ldata, time = (Load_csv(directory+"/"+filename))
+            data.append(ldata) #this is a list of DataFraMe
+            totACQTime = totACQTime + time
+            if debug: print(f'Total acquisition: {totACQTime} sec. last file time: {time} sec.')
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
-    return(TheData)
+    return(TheData, totACQTime)
 
 '''==================
      Plotting
@@ -323,7 +341,7 @@ def Acquire_ASPM(duration_acq, ser, debug=False):
         #print(acq_time.strftime('%H:%M:%S'))
         ser.reset_input_buffer() # Flush all the previous data in Serial port
         data = ser.readline().rstrip()
-        tdata = f"u{acq_time.strftime('%y%m%d%H%M%S')}{data.decode('ascii')}"
+        tdata = f"u{acq_time.strftime('%y%m%d%H%M%S.%f')}{data.decode('ascii')}"
         if(debug): print(tdata)
         lista.append(tdata)
         time.sleep(0.2)
