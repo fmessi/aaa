@@ -29,7 +29,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import Utility as ut
 
-def menu():
+def menu_long():
     print("\n ========================= ")
     print("     WELCOME TO ArduSiPM   ")
     print(" ========================= ")
@@ -45,7 +45,30 @@ def menu():
     print("   - LoadMerge_cvs():      Load all files from a folder (cvs)")
     print("   - ")
     print("   - Plot_ADC():            1D plot of ADC spectra")
+    print("   - ")
+    print("   - RunIt():               ")
+    print("   - RunLoop():")
+    print("   - Acquire_ASPM()")
+    print("   - ")
+    print("   - menu_Long()")
+    print(" ========================= \n")
 
+def menu():
+    print("\n ========================= ")
+    print("     WELCOME TO ArduSiPM   ")
+    print(" ========================= ")
+    print(" type menu() for this menu \n")
+    print(" available functions are:  ")
+    print("   - Info_ASPM()")
+    print("   - Load_csv(filename=, debug=)")
+    print("   - LoadMerge_cvs(directory=, InName=, OutName=, debug=)")
+    print("   - ")
+    print("   - Plot_ADC(dati, binsize=16, hRange=[0,4000])")
+    print("   - ")
+    print("   - RunIt(duration_acq=0, file_par=)               ")
+    print("   - RunLoop(duration_acq, nLoops, file_par)")
+    print("   - ")
+    print("   - menu_Long()")
     print(" ========================= \n")
 
 def interactive():
@@ -209,14 +232,15 @@ def Load_csv(filename=None, debug=False):
                   TDC = vlista[0]
                   ADC = vlista[1]
                   if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
-                  ddata.append([utime,int(CPS),int(TDC,16),int(ADC,16)])
+                  ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16)])
     TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
-    acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
+    #acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
+    acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
     #TheData.df = TheData.df.concat(ddata, ignore_index=True)
     #return(TheData)
     return(TheData, acqtime)
 
-def Load_Merge_csv(directory=None, InName=None, OutName=None):
+def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False):
     '''
     SCOPE:
     INPUT: path to the folder with xlsx data files
@@ -227,7 +251,8 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None):
         print('PLEASE, provide a directory to scan... ')
         return(0,0)
     nFile = 0
-    totACQTime = 0.0
+    now = datetime.now()
+    totACQTime = now - now
     data = []
     slash = '/'
     if(InName): print(f"I will skip all files that does NOT contain {InName}")
@@ -251,6 +276,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None):
             totACQTime = totACQTime + time
             if debug: print(f'Total acquisition: {totACQTime} sec. last file time: {time} sec.')
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
+    print(f'{nFile} files loaded')
     return(TheData, totACQTime)
 
 '''==================
@@ -377,7 +403,7 @@ def RunIt(duration_acq=0, file_par='RawData'):
     time.sleep(0.5)
     ser.write(b'@')
     time.sleep(0.5)
-    print(f'Acquiring now... will stop at {stopat}')
+    print(f'Acquiring now... this run will stop at {stopat}')
     data = Acquire_ASPM(duration_acq, ser)
     print('SAVING DATA...')
     Save_Data(data, f"{start_time.strftime('%y%m%d%H%M%S')}_{file_par}.csv")
@@ -390,7 +416,7 @@ def RunLoop(duration_acq, nLoops, file_par):
     i = 1
     while i <= nLoops:
         print()
-        print(f'Run now loop n. {i}')
+        print(f'Run now loop n. {i} of {nLoops}')
         RunIt(duration_acq=duration_acq, file_par=file_par)
         i=i+1
 
