@@ -282,7 +282,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False):
 '''==================
      Plotting
 =================='''
-def Plot_ADC(dati, binsize=16, hRange=[0,4000]):
+def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, log=True):
     '''
     SCOPE: fast plot of ADC spectra
     INPUT: data
@@ -290,8 +290,8 @@ def Plot_ADC(dati, binsize=16, hRange=[0,4000]):
     '''
     nBin = int((hRange[1]-hRange[0])/binsize)
     title = 'ADC spectra'
-    label = 'ADC channel'
-    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, label=label, log=True)
+    xlabel = 'ADC channel'
+    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights)
     return n, bins, patches
 
 
@@ -419,6 +419,34 @@ def RunLoop(duration_acq, nLoops, file_par):
         print(f'Run now loop n. {i} of {nLoops}')
         RunIt(duration_acq=duration_acq, file_par=file_par)
         i=i+1
+
+
+'''==================
+     Data analysis
+=================='''
+
+def Anal(directory='.'):
+    bg, t_bg = Load_Merge_csv(directory, InName = 'bg')
+    w_bg = [1/t_bg.total_seconds()] * len(bg.ADC)
+
+    therm, t_therm = Load_Merge_csv(directory, InName = 'thermal')
+    w_therm = [1/t_therm.total_seconds()] * len(therm.ADC)
+
+    fast, t_fast = Load_Merge_csv(directory, InName = 'fast')
+    w_fast = [1/t_fast.total_seconds()] * len(fast.ADC)
+
+    #Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60')
+    #w_Co60 = [1/t_Co60.total_seconds()] * len(Co60.ADC)
+
+
+    Plot_ADC(bg, label='bg', weights=w_bg) #, log=False)
+    Plot_ADC(therm, label='therm', weights=w_therm) #, log=False)
+    Plot_ADC(fast, label='therm', weights=w_fast)
+    #Plot_ADC(Co60, label='therm', weights=w_Co60)
+
+    plt.legend()
+
+
 
 '''==================
      Interactive menu
