@@ -274,9 +274,9 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False):
             ldata, time = (Load_csv(directory+"/"+filename))
             data.append(ldata) #this is a list of DataFraMe
             totACQTime = totACQTime + time
-            if debug: print(f'Total acquisition: {totACQTime} sec. last file time: {time} sec.')
+            if debug: print(f'Total acquisition: {totACQTime.total_seconds()} sec. last file time: {time.total_seconds()} sec.')
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
-    print(f'{nFile} files loaded')
+    print(f'{nFile} files loaded for {totACQTime.total_seconds()} seconds of acquiring time')
     return(TheData, totACQTime)
 
 '''==================
