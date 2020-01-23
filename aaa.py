@@ -204,9 +204,9 @@ def Load_csv(filename=None, debug=False):
             #vpos = row.find('v')
             ## only data with a valid time are imported
             if (dolpos <=1): continue
-            CPS = row[dolpos+1]
+            CPS = row[dolpos+1:]
             if debug: print(f'row is {row}')
-            data = row[:dolpos]
+            data = row[:dolpos-1]
             if debug: print(f'data is {data}')
             #if not (data[0] == 't'): continue
             #print(tpos)
@@ -215,25 +215,19 @@ def Load_csv(filename=None, debug=False):
               utime = data[1:19]
               lista=data[21:].split('t')
               if debug: print(f'lista is : {lista}')
-              for i in range(0,len(lista)):
-                  vlista = lista[i].split('v')
-                  TDC = vlista[0]
-                  ADC = vlista[1]
-                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
-                  ddata.append([utime,int(CPS),int(TDC,16),int(ADC,16)])
-            if(tpos==13):
+            elif(tpos==13):
               if debug: print('old format')
-              #lista=data[1:].split('t')
               utime = data[1:12]
               lista=data[14:].split('t')
               if debug: print(f'lista is : {lista}')
-              for i in range(0,len(lista)):
-                  vlista = lista[i].split('v')
-                  TDC = vlista[0]
-                  ADC = vlista[1]
-                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}')
-                  ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16)])
-    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
+            else: continue
+            for i in range(0,len(lista)):
+              vlista = lista[i].split('v')
+              TDC = vlista[0]
+              ADC = vlista[1]
+              if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
+              ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
     #acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
     acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
     #TheData.df = TheData.df.concat(ddata, ignore_index=True)
@@ -282,7 +276,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False):
 '''==================
      Plotting
 =================='''
-def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, log=True):
+def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, log=True, ylabel=None):
     '''
     SCOPE: fast plot of ADC spectra
     INPUT: data
@@ -291,6 +285,7 @@ def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, 
     nBin = int((hRange[1]-hRange[0])/binsize)
     title = 'ADC spectra'
     xlabel = 'ADC channel'
+    ylabel = ylabel
     n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights)
     return n, bins, patches
 
@@ -425,7 +420,17 @@ def RunLoop(duration_acq, nLoops, file_par):
      Data analysis
 =================='''
 
-def Anal(directory='.'):
+def DataQuality(data, label=None, fig=1):
+    gen = data.CPS-data.nData
+    w = [1/len(gen)] * len(gen)
+    #FigSize = [11.69,8.27] #A4 = 8.27x11.69inch
+    #plt.figure(fig, FigSize)
+    #plt.title('CPS - ndata')
+    n, bins, patches = ut.Plot1D(gen, nBin=max(gen), R=(0,max(gen)+1), label=label, weights=w, xlabel='CPS-nData', title='expected_counts - recorded_counts', c=fig)
+    plt.ylabel('%')
+    return(n, bins, patches)
+
+def Anal(directory='.', check=False):
     bg, t_bg = Load_Merge_csv(directory, InName = 'bg')
     w_bg = [1/t_bg.total_seconds()] * len(bg.ADC)
 
@@ -435,17 +440,22 @@ def Anal(directory='.'):
     fast, t_fast = Load_Merge_csv(directory, InName = 'fast')
     w_fast = [1/t_fast.total_seconds()] * len(fast.ADC)
 
-    #Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60')
-    #w_Co60 = [1/t_Co60.total_seconds()] * len(Co60.ADC)
+    Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60')
+    w_Co60 = [1/t_Co60.total_seconds()] * len(Co60.ADC)
 
-
-    Plot_ADC(bg, label='bg', weights=w_bg) #, log=False)
+    Plot_ADC(bg, label='bg', weights=w_bg, ylabel='rate') #, log=False)
     Plot_ADC(therm, label='therm', weights=w_therm) #, log=False)
-    Plot_ADC(fast, label='therm', weights=w_fast)
-    #Plot_ADC(Co60, label='therm', weights=w_Co60)
-
+    Plot_ADC(fast, label='fast', weights=w_fast)
+    Plot_ADC(Co60, label='gamma (Co-60)', weights=w_Co60)
+    plt.ylabel('rate (counts/sec)')
     plt.legend()
 
+    if check:
+        DataQuality(bg, label='bg',fig=2)
+        DataQuality(therm, label='thermal',fig=2)
+        DataQuality(fast, label='fast',fig=2)
+        DataQuality(Co60, label='Co60',fig=2)
+        plt.legend()
 
 
 '''==================
