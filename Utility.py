@@ -14,7 +14,7 @@
 
 import matplotlib.pyplot as plt
 
-def Plot1D(dataArray, nBin=0, R=(0,0), title='title here...', label='here label...', c=1, log=False):
+def Plot1D(dataArray, nBin=0, R=(0,0), title='title here...', xlabel='here label...', label='data', c=1, log=False, weights=None):
     '''
     SCOPE: a 1D histo function...
     INPUT:
@@ -27,8 +27,8 @@ def Plot1D(dataArray, nBin=0, R=(0,0), title='title here...', label='here label.
     FigSize = [11.69,8.27] #A4 = 8.27x11.69inch
     fig = plt.figure(c,FigSize)
     plt.title(title)
-    plt.xlabel(label)
+    plt.xlabel(xlabel)
     #dataArray.hist(bins=nBin, histtype='step', fill=False)
-    n, bins, patches = plt.hist(dataArray, bins=nBin, range=R,  histtype='step', fill=False, log=log)
+    n, bins, patches = plt.hist(dataArray, bins=nBin, range=R,  histtype='step', fill=False, log=log, label=label, weights=weights)
     #return dataArray.hist(bins=nBin, histtype='step', fill=False ) #,edgecolor='black')
     return n, bins, patches
