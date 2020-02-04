@@ -386,8 +386,21 @@ def Scrivi_Seriale(comando, ser):
         ser.write(comando)
         time.sleep(2)
         ser.write(b'e')
-        print(f'worte on serial {comando}')
+        print(f'wrote on serial {comando}')
         time.sleep(0.5)
+
+def SetThreshold(threshold, ser):
+    if(ser):
+        ser.write(b'm')
+        time.sleep(2)
+        ser.write(b't')
+        time.sleep(2)
+        #ser.write(threshold.to_bytes(4, 'little'))
+        #ser.write(b'10')
+        ser.write(str(threshold).encode('utf-8'))
+        time.sleep(4)
+        ser.write(b'e')
+        time.sleep(2)
 
 '''==================
      Data acquisition
@@ -425,7 +438,7 @@ def Acquire_ASPM(duration_acq, ser, debug=False):
         time.sleep(0.2)
     return(lista)
 
-def RunIt(duration_acq=0, file_par='RawData'):
+def RunIt(duration_acq=0, file_par='RawData', threshold=200, debug=False):
     '''
     SCOPE:
     NOTE: copied and adapted from the original script from V.Bocci
@@ -457,23 +470,34 @@ def RunIt(duration_acq=0, file_par='RawData'):
     #time.sleep(0.5)
     ser.write(b'#')
     time.sleep(0.5)
-
+    SetThreshold(threshold, ser)
+    ser.write(b'$')
+    time.sleep(4)
+    #ser.write(b'#') ## ADC+CPS
+    ser.write(b'@') ## TDC+ADC+CPS
+    time.sleep(0.5)
     print(f'Acquiring now... this run will stop at {stopat}')
-    data = Acquire_ASPM(duration_acq, ser)
+    data = Acquire_ASPM(duration_acq, ser, debug=debug)
     print('SAVING DATA...')
     Save_Data(data, f"{start_time.strftime('%y%m%d%H%M%S')}_{file_par}.csv")
     ser.close()
     return data
 
-def RunLoop(duration_acq, nLoops, file_par):
+def RunLoop(duration_acq, nLoops, file_par, threshold=200):
     print(f'Start running {nLoops} loops of {duration_acq} sec each')
     print()
     i = 1
     while i <= nLoops:
-        print()
         print(f'Run now loop n. {i} of {nLoops}')
-        RunIt(duration_acq=duration_acq, file_par=file_par)
+        RunIt(duration_acq=duration_acq, file_par=file_par, threshold=threshold)
         i=i+1
+
+def ScanThreshold(debug=False):
+    lista_threshold = (10, 100, 200, 255)
+    for t in lista_threshold:
+        print(f'I will now run threshold {t}')
+        time.sleep(5)
+        RunIt(duration_acq=60, file_par=f'CTA-ThresholdScan_{t}',threshold=t, debug=debug)
 
 
 '''==================
