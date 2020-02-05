@@ -322,6 +322,20 @@ def Search_ASPM(baudrate=115200, timeout=None, debug=False):
         else :
             print ("no ArduSiPM, looking more...")
 
+def Apri_Seriale():
+	ser = serial.Serial()
+	ser.baudrate = 115200
+	ser.timeout=None
+	ser_num = Search_ASPM()
+	if (ser_num):
+	        ser.port = ser_num
+	        ser.open()
+	        time.sleep(1)
+	else:
+	        print('ArduSiPM not found please connect')
+	        return(0)
+	return(ser)
+
 def Scrivi_Seriale(comando, ser):
     if(ser):
         ser.write(b'm')
@@ -334,16 +348,17 @@ def Scrivi_Seriale(comando, ser):
 
 def SetThreshold(threshold, ser):
     if(ser):
-        ser.write(b'm')
+        ser.write(str('m').encode('utf-8'))
         time.sleep(2)
-        ser.write(b't')
+        ser.write(str('t').encode('utf-8'))
         time.sleep(2)
         #ser.write(threshold.to_bytes(4, 'little'))
         #ser.write(b'10')
         ser.write(str(threshold).encode('utf-8'))
         time.sleep(4)
-        ser.write(b'e')
+        ser.write(str('e').encode('utf-8'))
         time.sleep(2)
+
 
 '''==================
      Data acquisition
@@ -410,8 +425,8 @@ def RunIt(duration_acq=0, file_par='RawData', threshold=200, debug=False):
     #Scrivi_Seriale(b'@', ser)
     time.sleep(0.5)
     SetThreshold(threshold, ser)
-    #ser.write(b'$')
-    #time.sleep(1)
+    ser.write(b'$')
+    time.sleep(4)
     #ser.write(b'#') ## ADC+CPS
     ser.write(b'@') ## TDC+ADC+CPS
     time.sleep(0.5)
@@ -431,12 +446,13 @@ def RunLoop(duration_acq, nLoops, file_par, threshold=200):
         RunIt(duration_acq=duration_acq, file_par=file_par, threshold=threshold)
         i=i+1
 
-def ScanThreshold(debug=False):
-    lista_threshold = (10, 100, 200, 255)
-    for t in lista_threshold:
-        print(f'I will now run threshold {t}')
-        time.sleep(5)
-        RunIt(duration_acq=60, file_par=f'CTA-ThresholdScan_{t}',threshold=t, debug=debug)
+def ScanThreshold(duration_acq=3600, debug=False, prefix=None):
+    step = 20
+    for t in range(10, 255, step):
+        print(f'I will now run threshold {t} (range 10-255, steps {step})')
+        time.sleep(10)
+        nomeFile = prefix + f'CTA-ThresholdScan_{t}'
+        RunIt(duration_acq=duration_acq, file_par=nomeFile, threshold=t, debug=debug)
 
 
 '''==================
@@ -479,7 +495,6 @@ def Anal(directory='.', check=False):
         DataQuality(fast, label='fast',fig=2)
         DataQuality(Co60, label='Co60',fig=2)
         plt.legend()
->>>>>>> 1fcd243e67b9d65cb994a36bb156f82cd7091a55
 
 
 '''==================
