@@ -216,7 +216,8 @@ def Load_csv(filename=None, debug=False):
             if (dolpos <=1): continue
             CPS = row[dolpos+1:]
             utime = row[upos+1:datastart]
-            data = row[datastart+1:dolpos-1]
+            #data = row[datastart+1:dolpos-1] ## !!! NOTA: uncomment this and comment below if Firmware is < 2.6
+            data = row[datastart+1:dolpos]
             if debug: print(f'data is {data}')
             if datastart == tpos:
                 lista=data.split('t')
@@ -224,21 +225,32 @@ def Load_csv(filename=None, debug=False):
             #'''
                 for i in range(0,len(lista)):
                   vlista = lista[i].split('v')
-                  TDC = vlista[0]
-                  ADC = vlista[1]
+                  if vlista[0]: TDC = vlista[0]
+                  if vlista[1]: ADC = vlista[1]
+                  if int(ADC, 16) > 255:
+                      if int(ADC[2], 16)==1:
+                          print(f"    PROBLEM WITH ADC ???  file: {filename}")
+                          ADC='-4' 
+                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
+                  try: ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                  except:
+                        print("data is corrupted")
+                        print(f'row is {row}')
+                        print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
+                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
             elif datastart == vpos:
                 for i in range(0,len(data)):
                     vlista = data.split('v')
-            if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-            try: ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
-            except:
-                ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
-                print("data is corrupted")
-                print(f'row is {row}')
-                print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
+                    ## TODO
+            if debug:
+                TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
+                return(TheData)
     TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
     #acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
-    acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
+    try: acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
+    except:
+        print(f"    ERROR IN ACQ TIME !!! file: {filename}")
+        acqtime = -3
     #TheData.df = TheData.df.concat(ddata, ignore_index=True)
     #return(TheData)
             #'''
@@ -274,7 +286,8 @@ def Load_counts(filename=None, debug=False):
             lista = '0'
             ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
     TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
-    acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
+    try: acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
+    except: print("    ERROR IN ACQ TIME !!!")
     return(TheData, acqtime)
 
 def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False, SoloCounts=False):
@@ -295,7 +308,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False, SoloC
     if(InName): print(f"I will skip all files that does NOT contain {InName}")
     if(OutName): print(f"I will skip all files that does contain {OutName}")
     ## loops on the files of the directory
-    for filename in os.listdir(directory):
+    for filename in sorted(os.listdir(directory)): #, key=numericalSort):
         if filename.endswith(".csv"):
             if InName and InName not in filename:
                 print("skipping " + filename)
@@ -311,7 +324,8 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False, SoloC
             if not (SoloCounts): ldata, time = (Load_csv(directory+"/"+filename))
             if (SoloCounts): ldata, time = Load_counts(directory+"/"+filename)
             data.append(ldata) #this is a list of DataFraMe
-            totACQTime = totACQTime + time
+            try: totACQTime = totACQTime + time
+            except: print("    ERROR IN ACQ TIME !!! file: {filename}")
             if debug: print(f'Total acquisition: {totACQTime.total_seconds()} sec. last file time: {time.total_seconds()} sec.')
     TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
     print(f'{nFile} files loaded for {totACQTime.total_seconds()} seconds of acquiring time')
@@ -320,7 +334,7 @@ def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False, SoloC
 '''==================
      Plotting
 =================='''
-def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, log=True, ylabel=None):
+def Plot_ADC(dati, binsize=16, hRange=[0,4095], label='no_label', weights=None, log=True, ylabel=None, fig=1):
     '''
     SCOPE: fast plot of ADC spectra
     INPUT: data
@@ -330,10 +344,10 @@ def Plot_ADC(dati, binsize=16, hRange=[0,4000], label='no_label', weights=None, 
     title = 'ADC spectra'
     xlabel = 'ADC channel'
     ylabel = ylabel
-    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights)
+    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights, c=fig)
     return n, bins, patches
 
-def Plot_CPS(dati, binsize=1, hRange=[0,100], label='no_label', weights=None, log=True, ylabel=None):
+def Plot_CPS(dati, binsize=1, hRange=[0,100], label='no_label', weights=None, log=True, ylabel=None, fig=1):
     '''
     SCOPE: fast plot of ADC spectra
     INPUT: data
@@ -343,7 +357,7 @@ def Plot_CPS(dati, binsize=1, hRange=[0,100], label='no_label', weights=None, lo
     title = 'CPS distribution'
     xlabel = 'CPS'
     ylabel = ylabel
-    n, bins, patches = ut.Plot1D(dati.CPS, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights)
+    n, bins, patches = ut.Plot1D(dati.CPS, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights, c=fig)
     print(f'CPS mean of {label} is {dati.CPS.mean()}')
     return n, bins, patches
 
@@ -391,15 +405,15 @@ def Scrivi_Seriale(comando, ser):
 
 def SetThreshold(threshold, ser):
     if(ser):
-        ser.write(b'm')
+        ser.write(str('m').encode('utf-8'))
         time.sleep(2)
-        ser.write(b't')
+        ser.write(str('t').encode('utf-8'))
         time.sleep(2)
         #ser.write(threshold.to_bytes(4, 'little'))
         #ser.write(b'10')
         ser.write(str(threshold).encode('utf-8'))
         time.sleep(4)
-        ser.write(b'e')
+        ser.write(str('e').encode('utf-8'))
         time.sleep(2)
 
 '''==================
@@ -515,45 +529,54 @@ def DataQuality(data, label=None, fig=1):
     return(n, bins, patches)
 
 def Anal(directory='.', check=False, SoloCounts=False):
-    bg, t_bg = Load_Merge_csv(directory, InName = 'bg', SoloCounts=SoloCounts)
+    bg, t_bg = Load_Merge_csv(directory, InName = 'bg', OutName='SoloCounts')
     w_bg = [1/t_bg.total_seconds()] * len(bg.ADC)
 
-    therm, t_therm = Load_Merge_csv(directory, InName = 'thermal', SoloCounts=SoloCounts)
+    therm, t_therm = Load_Merge_csv(directory, InName = 'thermal', OutName='SoloCounts')
     w_therm = [1/t_therm.total_seconds()] * len(therm.ADC)
 
-    fast, t_fast = Load_Merge_csv(directory, InName = 'fast', OutName='fast2', SoloCounts=SoloCounts)
-    w_fast = [1/t_fast.total_seconds()] * len(fast.ADC)
+    #fast, t_fast = Load_Merge_csv(directory, InName = 'fast', OutName='fast2', SoloCounts=SoloCounts)
+    #w_fast = [1/t_fast.total_seconds()] * len(fast.ADC)
 
-    fast2, t_fast2 = Load_Merge_csv(directory, InName = 'fast2', SoloCounts=SoloCounts)
+    fast2, t_fast2 = Load_Merge_csv(directory, InName = 'fast2', OutName='SoloCounts')
     w_fast2 = [1/t_fast2.total_seconds()] * len(fast2.ADC)
 
-    Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60', SoloCounts=SoloCounts)
+    Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60', OutName='SoloCounts')
     w_Co60 = [1/t_Co60.total_seconds()] * len(Co60.ADC)
 
-    if not SoloCounts:
-        Plot_ADC(bg, label='bg', weights=w_bg, ylabel='rate') #, log=False)
-        Plot_ADC(therm, label='therm', weights=w_therm) #, log=False)
-        Plot_ADC(fast, label='fast', weights=w_fast)
-        Plot_ADC(Co60, label='gamma (Co-60)', weights=w_Co60)
-        plt.ylabel('rate (counts/sec)')
-        plt.legend()
+    Plot_ADC(bg, label='bg', weights=w_bg, ylabel='rate', fig=1) #, log=False)
+    Plot_ADC(therm, label='therm', weights=w_therm, fig=1) #, log=False)
+    #Plot_ADC(fast, label='fast', weights=w_fast, fig=1)
+    Plot_ADC(Co60, label='gamma (Co-60)', weights=w_Co60, fig=1)
+    plt.ylabel('rate (counts/sec)')
+    plt.legend()
 
-    if SoloCounts:
-        Plot_CPS(bg, label='bg')
-        Plot_CPS(therm, label='therm')
-        Plot_CPS(fast, label='fast')
-        Plot_CPS(fast2, label='fast2')
-        Plot_CPS(Co60, label='gamma (Co-60)')
-        #plt.ylabel('rate (counts/sec)')
-        plt.legend()
+    Plot_CPS(bg, label='bg', fig=3)
+    Plot_CPS(therm, label='therm', fig=3)
+    #Plot_CPS(fast, label='fast', fig=3)
+    Plot_CPS(fast2, label='fast2', fig=3)
+    Plot_CPS(Co60, label='gamma (Co-60)', fig=3)
+    #plt.ylabel('rate (counts/sec)')
+    plt.legend()
 
     if check:
         DataQuality(bg, label='bg',fig=2)
         DataQuality(therm, label='thermal',fig=2)
-        DataQuality(fast, label='fast',fig=2)
+        DataQuality(fast2, label='fast2',fig=2)
         DataQuality(Co60, label='Co60',fig=2)
         plt.legend()
 
+def ThresholdScan(directory='.', OutName=None):
+    for filename in sorted(os.listdir(directory)):
+        if not filename.endswith(".csv"): continue
+        if OutName and OutName in filename: continue
+        #print(f'loading file {directory}/{filename}')
+        threshold = filename.split('Scan_')[1].split('.')[0]
+        #print(filename, threshold)
+        ldata, time = Load_csv(directory+"/"+filename)
+        answer = ldata.query('ADC > 16')
+        Plot_ADC(answer, label=f'threshold {threshold}',fig=1)
+        Plot_CPS(ldata, label=f'threshold {threshold}',fig=2)
 
 '''==================
      Interactive menu
