@@ -29,6 +29,10 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import Utility as ut
 
+## import aaa_scripts
+import a-load as lf
+import a-analysis as an
+
 def menu_long():
     print("\n ========================= ")
     print("     WELCOME TO ArduSiPM   ")
@@ -39,10 +43,10 @@ def menu_long():
     print("   - Acquire_ASPM():        Open connection and start acquisition")
     print("   - Save_Data():           Save recorded data on a file")
     print("   - ")
-    print("   - Load_Curti_xlsx():     Load data from xlsx output file")
-    print("   - LoadMerge_xlsx():      Load all files from a folder (xlsx)")
-    print("   - Load_csv():            Load data from CVS output file")
-    print("   - LoadMerge_cvs():      Load all files from a folder (cvs)")
+    print("   - lf.Load_Curti_xlsx():     Load data from xlsx output file")
+    print("   - lf.LoadMerge_xlsx():      Load all files from a folder (xlsx)")
+    print("   - lf.Load_csv():            Load data from CVS output file")
+    print("   - lf.LoadMerge_cvs():      Load all files from a folder (cvs)")
     print("   - ")
     print("   - Plot_ADC():            1D plot of ADC spectra")
     print("   - ")
@@ -60,8 +64,8 @@ def menu():
     print(" type menu() for this menu \n")
     print(" available functions are:  ")
     print("   - Info_ASPM()")
-    print("   - Load_csv(filename=, debug=)")
-    print("   - LoadMerge_cvs(directory=, InName=, OutName=, debug=)")
+    print("   - lf.Load_csv(filename=, debug=)")
+    print("   - lf.LoadMerge_cvs(directory=, InName=, OutName=, debug=)")
     print("   - ")
     print("   - Plot_ADC(dati, binsize=16, hRange=[0,4000])")
     print("   - ")
@@ -82,259 +86,13 @@ def interactive():
     import IPython
     IPython.embed()
 
-'''==================
-     Load data from file/s
-=================='''
-class ArduSiPM_MetaData:
-    def __init__(self):
-        self.FileName = 'Not-Provided'
-        self.df = pd.DataFrame(columns = ['UNIXTIME', 'CPS', 'TDC', 'ADC'])
 
-def Load_Curti_xlsx(filename=None):
-    '''
-    SCOPE: load data from a xlsx datafile generated from Curti acquisition program
-    INPUT: the file name of the xlsx datafile
-    OUTPUT: a Pandas DataFrame
-    '''
-    #TODO: read both the sheet of the excel file, sort the informations and return an ArduSiPM_MetaData
-    if not filename:
-        print("please provide a valid filename")
-        return(0)
-    if not filename.endswith(".xlsx"):
-        print("file not .xlsx, please provide a valid filename")
-        return(0)
-    data_all = pd.ExcelFile(filename)
-    if 'ADCTDC' in data_all.sheet_names:
-        data = data_all.parse('ADCTDC')
-        return(data)
-    else:
-        print(f'NO TDC/ADC information in file {filename}')
-        return(0)
-
-def Load_Merge_xlsx(directory=None, InName=None, OutName=None):
-    '''
-    SCOPE:
-    INPUT: path to the folder with xlsx data files
-    OUTPUT: a Pandas DataFrame
-    '''
-    #TODO: return an ArduSiPM_MetaData
-    if not directory:
-        print('PLEASE, provide a directory to scan... ')
-        return(0,0)
-    nFile = 0
-    data = []
-    slash = '/'
-    if(InName): print(f"I will skip all files that does NOT contain {InName}")
-    if(OutName): print(f"I will skip all files that does contain {OutName}")
-    ## loops on the files of the directory
-    for filename in os.listdir(directory):
-        if filename.endswith(".xlsx"):
-            if InName and InName not in filename:
-                print("skipping " + filename)
-                continue
-            if '~' in filename: continue
-            if OutName and OutName in filename:
-                print("skipping " + filename)
-                continue
-            nFile = nFile+1
-            # loading and filtering data:
-            print(f'loading file {directory+slash+filename}')
-            data.append(Load_Curti_xlsx(directory+"/"+filename)) #this is a list of DataFraMe
-    TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
-    return(TheData)
-
-def Load_csv_old(filename=None):
-    '''
-    SCOPE: load data from a CSV datafile generated from the Save_Data() function
-    INPUT: the file name of the csv datafile
-    OUTPUT: a Pandas DataFrame
-    '''
-    if not filename:
-        print("please provide a valid filename")
-        return(0)
-    if not filename.endswith(".csv"):
-        print("file not .csv, please provide a valid filename")
-        return(0)
-    ddata = []
-    with open(filename, 'r') as file:
-        #rawdata = csv.reader(file, delimiter=',')
-        for line in file: rawdata = line.split(',')
-        for row in rawdata:
-            dolpos = row.find('$')
-            tpos = row.find('t')
-            #vpos = row.find('v')
-            ## only data with a valid time are imported
-            if (dolpos <=1): continue
-            CPS = row[dolpos+1]
-            #print('row is '+ row)
-            data = row[:dolpos]
-            if not (data[0] == 't'): continue
-            if(tpos==0):
-              lista=data[1:].split('t')
-              for i in range(0,len(lista)):
-                  vlista = lista[i].split('v')
-                  TDC = vlista[0]
-                  ADC = vlista[1]
-                  #print(row,CPS,TDC,ADC)
-                  ddata.append([0,int(CPS),int(TDC,16),int(ADC,16)])
-    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC'])
-    #TheData.df = TheData.df.concat(ddata, ignore_index=True)
-    #return(TheData)
-    return(TheData)
-
-def Load_csv(filename=None, debug=False):
-    '''
-    SCOPE: load data from a CSV datafile generated from the Save_Data() function
-    INPUT: the file name of the csv datafile
-    OUTPUT: a Pandas DataFrame
-    '''
-    if not filename:
-        print("please provide a valid filename")
-        return(0)
-    if not filename.endswith(".csv"):
-        print("file not .csv, please provide a valid filename")
-        return(0)
-    ddata = []
-    with open(filename, 'r') as file:
-        #rawdata = csv.reader(file, delimiter=',')
-        for line in file: rawdata = line.split(',')
-        for row in rawdata:
-            if not row: continue
-            if debug: print(f'row is {row}')
-            CPS = '-3'
-            TDC = '-3'
-            ADC = '-3'
-            lista = '0'
-            dolpos = row.find('$')
-            tpos = row.find('t')
-            vpos = row.find('v')
-            upos = row.find('u')
-            pos = (upos, tpos, vpos, dolpos)
-            datastart = min(i for i in pos if i>0)
-            if debug: print(f'positions are: {datastart} {pos}')
-            ## only data with a valid time are imported
-            if (dolpos <=1): continue
-            CPS = row[dolpos+1:]
-            utime = row[upos+1:datastart]
-            #data = row[datastart+1:dolpos-1] ## !!! NOTA: uncomment this and comment below if Firmware is < 2.6
-            data = row[datastart+1:dolpos]
-            if debug: print(f'data is {data}')
-            if datastart == tpos:
-                lista=data.split('t')
-                if debug: print(f'lista is : {lista}')
-            #'''
-                for i in range(0,len(lista)):
-                  vlista = lista[i].split('v')
-                  if vlista[0]: TDC = vlista[0]
-                  if vlista[1]: ADC = vlista[1]
-                  if int(ADC, 16) > 255:
-                      if int(ADC[2], 16)==1:
-                          print(f"    PROBLEM WITH ADC ???  file: {filename}")
-                          ADC='-4' 
-                  if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-                  try: ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
-                  except:
-                        print("data is corrupted")
-                        print(f'row is {row}')
-                        print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
-            elif datastart == vpos:
-                for i in range(0,len(data)):
-                    vlista = data.split('v')
-                    ## TODO
-            if debug:
-                TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
-                return(TheData)
-    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
-    #acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
-    try: acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
-    except:
-        print(f"    ERROR IN ACQ TIME !!! file: {filename}")
-        acqtime = -3
-    #TheData.df = TheData.df.concat(ddata, ignore_index=True)
-    #return(TheData)
-            #'''
-    return(TheData, acqtime)
-
-def Load_counts(filename=None, debug=False):
-    '''
-    SCOPE: load data from a CSV datafile generated from the Save_Data() function
-    INPUT: the file name of the csv datafile
-    OUTPUT: a Pandas DataFrame
-    '''
-    if not filename:
-        print("please provide a valid filename")
-        return(0)
-    if not filename.endswith(".csv"):
-        print("file not .csv, please provide a valid filename")
-        return(0)
-    ddata = []
-    with open(filename, 'r') as file:
-        #rawdata = csv.reader(file, delimiter=',')
-        for line in file: rawdata = line.split(',')
-        for row in rawdata:
-            dolpos = row.find('$')
-            if (dolpos <=1): continue
-            CPS = row[dolpos+1:]
-            if debug: print(f'row is {row}')
-            data = row[:dolpos-1]
-            if debug: print(f'data is {data}')
-            utime = data[1:19]
-            if debug: print(f'{utime}, {CPS}')
-            TDC = '0'
-            ADC = '0'
-            lista = '0'
-            ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
-    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
-    try: acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
-    except: print("    ERROR IN ACQ TIME !!!")
-    return(TheData, acqtime)
-
-def Load_Merge_csv(directory=None, InName=None, OutName=None, debug=False, SoloCounts=False):
-    '''
-    SCOPE:
-    INPUT: path to the folder with xlsx data files
-    OUTPUT: a Pandas DataFrame
-    '''
-    #TODO: return an ArduSiPM_MetaData
-    if not directory:
-        print('PLEASE, provide a directory to scan... ')
-        return(0,0)
-    nFile = 0
-    now = datetime.now()
-    totACQTime = now - now
-    data = []
-    slash = '/'
-    if(InName): print(f"I will skip all files that does NOT contain {InName}")
-    if(OutName): print(f"I will skip all files that does contain {OutName}")
-    ## loops on the files of the directory
-    for filename in sorted(os.listdir(directory)): #, key=numericalSort):
-        if filename.endswith(".csv"):
-            if InName and InName not in filename:
-                print("skipping " + filename)
-                continue
-            if '~' in filename: continue
-            if OutName and OutName in filename:
-                print("skipping " + filename)
-                continue
-            nFile = nFile+1
-            # loading and filtering data:
-            print(f'loading file {directory+slash+filename}')
-            #data.append(Load_csv(directory+"/"+filename)) #this is a list of DataFraMe
-            if not (SoloCounts): ldata, time = (Load_csv(directory+"/"+filename))
-            if (SoloCounts): ldata, time = Load_counts(directory+"/"+filename)
-            data.append(ldata) #this is a list of DataFraMe
-            try: totACQTime = totACQTime + time
-            except: print("    ERROR IN ACQ TIME !!! file: {filename}")
-            if debug: print(f'Total acquisition: {totACQTime.total_seconds()} sec. last file time: {time.total_seconds()} sec.')
-    TheData = pd.concat(data, ignore_index=True) #this is a DataFrame
-    print(f'{nFile} files loaded for {totACQTime.total_seconds()} seconds of acquiring time')
-    return(TheData, totACQTime)
 
 '''==================
      Plotting
 =================='''
-def Plot_ADC(dati, binsize=16, hRange=[0,4095], label='no_label', weights=None, log=True, ylabel=None, fig=1):
+#def Plot_ADC(dati, binsize=16, hRange=[0,4095], label='no_label', weights=None, log=True, ylabel=None, fig=1):
+def Plot_ADC(dati, binsize=1, hRange=[0,1000], label='no_label', weights=None, log=True, ylabel=None, fig=1):
     '''
     SCOPE: fast plot of ADC spectra
     INPUT: data
@@ -409,11 +167,11 @@ def Apri_Seriale():
 
 def Scrivi_Seriale(comando, ser):
     if(ser):
-        ser.write(b'm')
+        ser.write(str('m').encode('utf-8'))
         time.sleep(2)
-        ser.write(comando)
+        ser.write(str(comando).encode('utf-8'))
         time.sleep(2)
-        ser.write(b'e')
+        ser.write(str('e').encode('utf-8'))
         print(f'wrote on serial {comando}')
         time.sleep(0.5)
 
@@ -530,69 +288,7 @@ def ScanThreshold(duration_acq=3600, debug=False, prefix=None):
         RunIt(duration_acq=duration_acq, file_par=nomeFile, threshold=t, debug=debug)
 
 
-'''==================
-     Data analysis
-=================='''
 
-def DataQuality(data, label=None, fig=1):
-    gen = data.CPS-data.nData
-    w = [1/len(gen)] * len(gen)
-    #FigSize = [11.69,8.27] #A4 = 8.27x11.69inch
-    #plt.figure(fig, FigSize)
-    #plt.title('CPS - ndata')
-    n, bins, patches = ut.Plot1D(gen, nBin=max(gen), R=(0,max(gen)+1), label=label, weights=w, xlabel='CPS-nData', title='expected_counts - recorded_counts', c=fig)
-    plt.ylabel('%')
-    return(n, bins, patches)
-
-def Anal(directory='.', check=False, SoloCounts=False):
-    bg, t_bg = Load_Merge_csv(directory, InName = 'bg', OutName='SoloCounts')
-    w_bg = [1/t_bg.total_seconds()] * len(bg.ADC)
-
-    therm, t_therm = Load_Merge_csv(directory, InName = 'thermal', OutName='SoloCounts')
-    w_therm = [1/t_therm.total_seconds()] * len(therm.ADC)
-
-    #fast, t_fast = Load_Merge_csv(directory, InName = 'fast', OutName='fast2', SoloCounts=SoloCounts)
-    #w_fast = [1/t_fast.total_seconds()] * len(fast.ADC)
-
-    fast2, t_fast2 = Load_Merge_csv(directory, InName = 'fast2', OutName='SoloCounts')
-    w_fast2 = [1/t_fast2.total_seconds()] * len(fast2.ADC)
-
-    Co60, t_Co60 = Load_Merge_csv(directory, InName = 'Co60', OutName='SoloCounts')
-    w_Co60 = [1/t_Co60.total_seconds()] * len(Co60.ADC)
-
-    Plot_ADC(bg, label='bg', weights=w_bg, ylabel='rate', fig=1) #, log=False)
-    Plot_ADC(therm, label='therm', weights=w_therm, fig=1) #, log=False)
-    #Plot_ADC(fast, label='fast', weights=w_fast, fig=1)
-    Plot_ADC(Co60, label='gamma (Co-60)', weights=w_Co60, fig=1)
-    plt.ylabel('rate (counts/sec)')
-    plt.legend()
-
-    Plot_CPS(bg, label='bg', fig=3)
-    Plot_CPS(therm, label='therm', fig=3)
-    #Plot_CPS(fast, label='fast', fig=3)
-    Plot_CPS(fast2, label='fast2', fig=3)
-    Plot_CPS(Co60, label='gamma (Co-60)', fig=3)
-    #plt.ylabel('rate (counts/sec)')
-    plt.legend()
-
-    if check:
-        DataQuality(bg, label='bg',fig=2)
-        DataQuality(therm, label='thermal',fig=2)
-        DataQuality(fast2, label='fast2',fig=2)
-        DataQuality(Co60, label='Co60',fig=2)
-        plt.legend()
-
-def ThresholdScan(directory='.', OutName=None):
-    for filename in sorted(os.listdir(directory)):
-        if not filename.endswith(".csv"): continue
-        if OutName and OutName in filename: continue
-        #print(f'loading file {directory}/{filename}')
-        threshold = filename.split('Scan_')[1].split('.')[0]
-        #print(filename, threshold)
-        ldata, time = Load_csv(directory+"/"+filename)
-        answer = ldata.query('ADC > 16')
-        Plot_ADC(answer, label=f'threshold {threshold}',fig=1)
-        Plot_CPS(ldata, label=f'threshold {threshold}',fig=2)
 
 '''==================
      Interactive menu
