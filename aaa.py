@@ -12,6 +12,8 @@
 | history:                                                           |
 | 191119 - F.Messi - import info script from V.Bocci original code   |
 |                    load of data-file from F.Curti DAQ              |
+| 200211 - F.Messi - Load data functions moved to a-load.py          |
+|                    Data analysis functions moved to a-analysis.py  |
  --------------------------------------------------------------------
 '''
 
@@ -27,11 +29,11 @@ import pandas as pd
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import Utility as ut
 
 ## import aaa_scripts
-import a-load as lf
-import a-analysis as an
+import Utility as ut
+import a_load as lf
+import a_analysis as an
 
 def menu_long():
     print("\n ========================= ")
@@ -87,37 +89,6 @@ def interactive():
     IPython.embed()
 
 
-
-'''==================
-     Plotting
-=================='''
-#def Plot_ADC(dati, binsize=16, hRange=[0,4095], label='no_label', weights=None, log=True, ylabel=None, fig=1):
-def Plot_ADC(dati, binsize=1, hRange=[0,1000], label='no_label', weights=None, log=True, ylabel=None, fig=1):
-    '''
-    SCOPE: fast plot of ADC spectra
-    INPUT: data
-    OUTPUT: print info on screen and histo parameters
-    '''
-    nBin = int((hRange[1]-hRange[0])/binsize)
-    title = 'ADC spectra'
-    xlabel = 'ADC channel'
-    ylabel = ylabel
-    n, bins, patches = ut.Plot1D(dati.ADC, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights, c=fig)
-    return n, bins, patches
-
-def Plot_CPS(dati, binsize=1, hRange=[0,100], label='no_label', weights=None, log=True, ylabel=None, fig=1):
-    '''
-    SCOPE: fast plot of ADC spectra
-    INPUT: data
-    OUTPUT: print info on screen and histo parameters
-    '''
-    nBin = int((hRange[1]-hRange[0])/binsize)
-    title = 'CPS distribution'
-    xlabel = 'CPS'
-    ylabel = ylabel
-    n, bins, patches = ut.Plot1D(dati.CPS, nBin=nBin, R=hRange, title=title, xlabel=xlabel, label=label, log=log, weights=weights, c=fig)
-    print(f'CPS mean of {label} is {dati.CPS.mean()}')
-    return n, bins, patches
 
 '''==================
      ArduSiPM interfacing

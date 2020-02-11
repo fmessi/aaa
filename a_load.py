@@ -1,3 +1,25 @@
+#!/usr/bin/env python3
+
+'''
+ --------------------------------------------------------------------
+|              aaa - ArduSiPM Acquisition & Analysis                 |
+ --------------------------------------------------------------------
+| Python libraries for the ArduSiPM  =  load data from files         |
+| project web: https://sites.google.com/view/particle-detectors/home |
+| code repository: https://github.com/fmessi/aaa.git                 |
+|                                                                    |
+| history:                                                           |
+| 200211 - F.Messi - file created from old aaa.py                    |
+ --------------------------------------------------------------------
+'''
+
+import sys
+import os
+import time
+from datetime import datetime, timedelta
+import csv
+import pandas as pd
+
 '''==================
      Load data from file/s
 =================='''
