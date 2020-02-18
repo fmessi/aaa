@@ -145,6 +145,7 @@ def Load_csv(filename=None, debug=False):
             TDC = '-3'
             ADC = '-3'
             lista = '0'
+            QF = 0 ## Quality factor, if zero --> data are perfect as expected
             dolpos = row.find('$')
             tpos = row.find('t')
             vpos = row.find('v')
@@ -153,33 +154,38 @@ def Load_csv(filename=None, debug=False):
             datastart = min(i for i in pos if i>0)
             if debug: print(f'positions are: {datastart} {pos}')
             ## only data with a valid time are imported
-            if (dolpos <=1): continue
+            if (dolpos <=1):
+                QF = QF +1
+                ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(0),int(QF)])
+                continue
             CPS = row[dolpos+1:]
             utime = row[upos+1:datastart]
             #data = row[datastart+1:dolpos-1] ## !!! NOTA: uncomment this and comment below if Firmware is < 2.6
             data = row[datastart+1:dolpos]
             if debug: print(f'data is {data}')
             if tpos>0 and vpos < tpos:
+                QF = QF +1
                 if debug: print(f"data is corrupted. Row is: {row}, {filename}")
                 try:
                     if debug: print(f'scrivo: [{float(utime)},{int(CPS)},{int(TDC,16)},{int(ADC,16)},{int(len(lista))}]')
                     ADC = '-5'
-                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista)),int(QF)])
                 except:
                         print("data is corrupted")
                         print(f'row is {row}')
                         print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista)),int(QF)])
                 continue
             if datastart == dolpos:
                 try:
                     if debug: print(f'scrivo: [{float(utime)},{int(CPS)},{int(TDC,16)},{int(ADC,16)},{int(0)}]')
-                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(0)])
+                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(0),int(QF)])
                 except:
+                    QF = QF +1
                     print("data is corrupted")
                     print(f'row is {row}')
                     print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-                    ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                    ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista)),int(QF)])
             elif datastart == tpos:
                 lista=data.split('t')
                 #if debug: print(f'lista is : {lista}')
@@ -195,12 +201,13 @@ def Load_csv(filename=None, debug=False):
                   #if debug: print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
                   try:
                     if debug: print(f'scrivo: [{float(utime)},{int(CPS)},{int(TDC,16)},{int(ADC,16)},{int(len(lista))}]')
-                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                    ddata.append([float(utime),int(CPS),int(TDC,16),int(ADC,16),int(len(lista)),int(QF)])
                   except:
+                        QF = QF + 1
                         print("data is corrupted")
                         print(f'row is {row}')
                         print(f'{utime}, {CPS}, {TDC}, {ADC}, {len(lista)}')
-                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista))])
+                        ddata.append([float(0),int(CPS),int(TDC,16),int(ADC,16),int(len(lista)),int(QF)])
             elif datastart == vpos:
                 for i in range(0,len(data)):
                     vlista = data.split('v')
@@ -208,7 +215,7 @@ def Load_csv(filename=None, debug=False):
             #if debug:
             #    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
             #    return(TheData)
-    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData'])
+    TheData = pd.DataFrame(ddata, columns=['UNIXTIME', 'CPS', 'TDC', 'ADC', 'nData', 'QF'])
     #acqtime = float(TheData.UNIXTIME[len(TheData)-1]) - float(TheData.UNIXTIME[0])
     try: acqtime = pd.to_datetime(TheData.UNIXTIME[len(TheData)-1], format='%y%m%d%H%M%S.%f') - pd.to_datetime(TheData.UNIXTIME[0], format='%y%m%d%H%M%S.%f')
     except:
