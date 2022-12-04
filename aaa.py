@@ -18,76 +18,89 @@
 '''
 
 import sys
-import os
 import time
 from datetime import datetime, timedelta
-import csv
 import serial
 import serial.tools.list_ports
-import numpy as np
-import pandas as pd
+import IPython
 import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
 
-## import aaa_scripts
-import Utility as ut
-import a_load as lf
-import a_analysis as an
+# import os
+# import csv
+# import numpy as np
+# import pandas as pd
 
-def menu_long():
-    print("\n ========================= ")
-    print("     WELCOME TO ArduSiPM   ")
-    print(" ========================= ")
-    print(" type menu() for this menu \n")
-    print(" available functions are:  ")
-    print("   - Info_ASPM():                Retrive basic information from ArduSiPM ")
-    print("   - Acquire_ASPM():        Open connection and start acquisition")
-    print("   - Save_Data():           Save recorded data on a file")
-    print("   - ")
-    print("   - lf.Load_Curti_xlsx():     Load data from xlsx output file")
-    print("   - lf.LoadMerge_xlsx():      Load all files from a folder (xlsx)")
-    print("   - lf.Load_csv():            Load data from CVS output file")
-    print("   - lf.LoadMerge_cvs():      Load all files from a folder (cvs)")
-    print("   - ")
-    print("   - Plot_ADC():            1D plot of ADC spectra")
-    print("   - ")
-    print("   - RunIt():               ")
-    print("   - RunLoop():")
-    print("   - Acquire_ASPM()")
-    print("   - ")
-    print("   - menu_Long()")
-    print(" ========================= \n")
+# import aaa_scripts
+# import Utility as ut
+# import a_load as lf
+# import a_analysis as an
+
+def menu_long(): 
+    print('''
+    ===========================
+        WELCOME TO ArduSiPM   
+    ===========================
+    type menu() for this menu
+    
+    available functions are:
+    
+    - Info_ASPM():             Retrive basic information from ArduSiPM 
+    - Acquire_ASPM():          Open connection and start acquisition
+    - Save_Data():             Save recorded data on a file
+    
+    - lf.Load_Curti_xlsx():    Load data from xlsx output file
+    - lf.LoadMerge_xlsx():     Load all files from a folder (xlsx)
+    - lf.Load_csv():           Load data from CVS output file
+    - lf.LoadMerge_cvs():      Load all files from a folder (cvs)
+    
+    - Plot_ADC():              1D plot of ADC spectra
+    
+    - RunIt():               
+    - RunLoop():
+    - Acquire_ASPM()
+    
+    - menu_long()
+    ===========================
+    
+    ''')
 
 def menu():
-    print("\n ========================= ")
-    print("     WELCOME TO ArduSiPM   ")
-    print(" ========================= ")
-    print(" type menu() for this menu \n")
-    print(" available functions are:  ")
-    print("   - Info_ASPM()")
-    print("   - lf.Load_csv(filename=, debug=)")
-    print("   - lf.LoadMerge_cvs(directory=, InName=, OutName=, debug=)")
-    print("   - ")
-    print("   - Plot_ADC(dati, binsize=16, hRange=[0,4000])")
-    print("   - ")
-    print("   - RunIt(duration_acq=0, file_par=)               ")
-    print("   - RunLoop(duration_acq, nLoops, file_par)")
-    print("   - ")
-    print("   - menu_Long()")
-    print(" ========================= \n")
+    print('''
+    ===========================
+        WELCOME TO ArduSiPM   
+    ===========================
+    type menu() for this menu
+    
+    available functions are:
+
+    - Info_ASPM()
+    - lf.Load_csv(filename=, debug=)
+    - lf.LoadMerge_cvs(directory=, InName=, OutName=, debug=)
+
+    - Plot_ADC(dati, binsize=16, hRange=[0,4000])
+
+    - RunIt(duration_acq=0, file_par=)
+    - RunLoop(duration_acq, nLoops, file_par)
+
+    - menu_long()
+    ===========================
+    
+    ''')
 
 def interactive():
-    print(" Interactive IPython shell ")
-    print(" ========================= ")
-    print(" Quick command usage:")
-    print("  - 'who' or 'whos' to see all (locally) defined variables")
-    print("  - if the plots are shown only as black area, run '%gui qt'")
-    print("  - to make cmd prompt usable while plots are shown use 'plt.ion()' for interactive mode")
-    print("    or run 'plt.show(block=False)' to show them")
-    import IPython
+    print('''
+    Interactive IPython shell 
+    ===========================
+    Quick command usage:
+    - 'who' or 'whos' to see all (locally) defined variables
+    - if the plots are shown only as black area, run '%gui qt'
+    - to make cmd prompt usable while plots are shown use
+      'plt.ion()' for interactive mode or run 
+      'plt.show(block=False)' to show them
+    ''')
     IPython.embed()
-
 
 
 '''==================
@@ -123,18 +136,18 @@ def Search_ASPM(baudrate=115200, timeout=None, debug=False):
             print ("no ArduSiPM, looking more...")
 
 def Apri_Seriale():
-	ser = serial.Serial()
-	ser.baudrate = 115200
-	ser.timeout=None
-	ser_num = Search_ASPM()
-	if (ser_num):
-	        ser.port = ser_num
-	        ser.open()
-	        time.sleep(1)
-	else:
-	        print('ArduSiPM not found please connect')
-	        return(0)
-	return(ser)
+    ser = serial.Serial()
+    ser.baudrate = 115200
+    ser.timeout=None
+    ser_num = Search_ASPM()
+    if (ser_num):
+            ser.port = ser_num
+            ser.open()
+            time.sleep(1)
+    else:
+            print('ArduSiPM not found please connect')
+            return(0)
+    return(ser)
 
 def Scrivi_Seriale(comando, ser):
     if(ser):
